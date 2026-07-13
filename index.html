@@ -1014,34 +1014,10 @@
           // Unlock page scroll
           document.body.style.overflow = '';
           if(this._noScroll) document.removeEventListener('touchmove', this._noScroll);
-          // Call play() NOW, during the gesture.
-          // iOS holds the gesture permission even while the file is buffering.
-          // If the file isn't ready yet (AbortError), we queue a canplay retry —
-          // the element is already "user-activated" by this call, so the retry succeeds.
+          // Call play() directly in the click handler, same as the reference project.
           if(this._audio && !this.state.playing){
-            this._audio.play()
-              .then(()=>{ this.setState({playing:true}); })
-              .catch((err)=>{
-                if(err.name !== 'NotAllowedError'){
-                  // Not a permissions error — audio just wasn't ready yet. Retry on canplay.
-                  this._audio.addEventListener('canplay', ()=>{
-                    this._audio.play()
-                      .then(()=>{ this.setState({playing:true}); })
-                      .catch(()=>{});
-                  }, { once: true });
-                } else {
-                  // Some strict mobile in-app browsers reject even a same-tap
-                  // play() call the first time. Retry on the very next touch/
-                  // click anywhere on the page — that's still a direct user
-                  // gesture, so the browser allows it.
-                  const retryOnNextGesture = () => {
-                    if(this.state.playing) return;
-                    this._audio.play().then(()=>{ this.setState({playing:true}); }).catch(()=>{});
-                  };
-                  document.addEventListener('touchend', retryOnNextGesture, { once: true, passive: true });
-                  document.addEventListener('click', retryOnNextGesture, { once: true });
-                }
-              });
+            this._audio.play().catch(()=>{});
+            this.setState({playing:true});
           }
           setTimeout(()=>{ this.setState({envGone:true}); }, 2800);
         }
@@ -1052,20 +1028,8 @@
             this._audio.pause();
             this.setState({playing:false});
           } else {
-            // play() is called directly in the user-gesture handler.
-            // If audio isn't buffered yet, AbortError is thrown — we retry on canplay.
-            // The element is already "user-activated" by this call, so the retry is allowed.
-            this._audio.play()
-              .then(()=>{ this.setState({playing:true}); })
-              .catch((err)=>{
-                if(err.name !== 'NotAllowedError'){
-                  this._audio.addEventListener('canplay', ()=>{
-                    this._audio.play()
-                      .then(()=>{ this.setState({playing:true}); })
-                      .catch(()=>{});
-                  }, { once: true });
-                }
-              });
+            this._audio.play().catch(()=>{});
+            this.setState({playing:true});
           }
         }
 
