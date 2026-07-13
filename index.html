@@ -967,7 +967,7 @@
 
         // Вставь сюда URL веб-приложения Google Apps Script (см. инструкцию), например:
         // 'https://script.google.com/macros/s/AKfycb.../exec'
-        GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwbq_aqrlaT5ZlfjKqlxhXbV1P1hpaOT13vXPNRfKtpkwho_n0BpABKs6cUICVk5U4J/exec';
+        GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwADdCR0zMgt2ZRcsr_ktQO-PdMEGTGvsyMIVhaQWn1RCRwB2-BUv6J7oXwRqwCQYWZ/exec';
 
         componentDidMount(){
           this.tick();
@@ -1122,9 +1122,7 @@
             fioError = 'Только буквы';
           }
 
-          if(!phoneDigits){
-            phoneError = 'Укажите телефон';
-          } else if(phoneDigits.length < 10 || phoneDigits.length > 11){
+          if(phoneDigits && (phoneDigits.length < 10 || phoneDigits.length > 11)){
             phoneError = 'Проверьте номер телефона';
           }
 
