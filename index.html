@@ -3,6 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/x-icon" href="./assets/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="16x16" href="./assets/favicon-16x16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="./assets/favicon-48x48.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./assets/android-chrome-192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="./assets/android-chrome-512x512.png" />
     <script src="./support.js"></script>
   </head>
   <body>
@@ -427,6 +434,20 @@
           .inp:focus {
             border-color: var(--ink);
           }
+          .inp.err {
+            border-color: #b5544a;
+          }
+          .ferr {
+            font-family: "Montserrat", sans-serif;
+            font-weight: 400;
+            font-size: 13px;
+            color: #b5544a;
+            margin-top: 8px;
+          }
+          .oval.disabled {
+            opacity: 0.55;
+            pointer-events: none;
+          }
           .step {
             display: flex;
             align-items: center;
@@ -816,7 +837,15 @@
           <sc-if value="{{ notSubmitted }}" hint-placeholder-val="{{ true }}"
             ><div class="field" style="margin-top: 51px">
               <div class="flab">Фамилия и имя</div>
-              <input class="inp" placeholder="ФИО" value="{{ fio }}" onInput="{{ onFio }}" />
+              <input
+                class="{{ fioInpCls }}"
+                placeholder="ФИО"
+                value="{{ fio }}"
+                onInput="{{ onFio }}"
+                maxlength="60"
+              /><sc-if value="{{ hasFioError }}" hint-placeholder-val="{{ false }}"
+                ><div class="ferr">{{ fioError }}</div></sc-if
+              >
             </div>
             <div class="field">
               <div class="flab">Количество человек вместе с Вами (дети, супруг/а)</div>
@@ -829,18 +858,21 @@
             <div class="field">
               <div class="flab">Ваш телефон</div>
               <input
-                class="inp"
+                class="{{ phoneInpCls }}"
                 placeholder="+7 (999) 999-9999"
                 value="{{ phone }}"
                 onInput="{{ onPhone }}"
-              />
+                maxlength="18"
+              /><sc-if value="{{ hasPhoneError }}" hint-placeholder-val="{{ false }}"
+                ><div class="ferr">{{ phoneError }}</div></sc-if
+              >
             </div>
             <div class="field">
               <div class="flab">Нужно ли Вам место для ночлега?</div>
               <div class="{{ daCls }}" onClick="{{ pickDa }}"><span class="rc"></span>да</div>
               <div class="{{ netCls }}" onClick="{{ pickNet }}"><span class="rc"></span>нет</div>
             </div>
-            <div class="oval" onClick="{{ submit }}">Подтвердить присутствие</div></sc-if
+            <div class="{{ submitCls }}" onClick="{{ submit }}">{{ submitLabel }}</div></sc-if
           ><sc-if value="{{ submitted }}" hint-placeholder-val="{{ false }}"
             ><div class="thanks">
               Спасибо! Ваше присутствие подтверждено.<br />Мы очень ждём встречи с Вами!
@@ -931,7 +963,11 @@
     </x-dc>
     <script type="text/x-dc" data-dc-script>
       class Component extends DCLogic {
-        state = { envOpen:false, envGone:false, fio:'', count:0, phone:'', nochleg:'', submitted:false, d:'00',h:'00',m:'00',s:'00', slide:0, playing:false };
+        state = { envOpen:false, envGone:false, fio:'', count:0, phone:'', nochleg:'нет', submitted:false, sending:false, fioError:'', phoneError:'', d:'00',h:'00',m:'00',s:'00', slide:0, playing:false };
+
+        // Вставь сюда URL веб-приложения Google Apps Script (см. инструкцию), например:
+        // 'https://script.google.com/macros/s/AKfycb.../exec'
+        GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwz5QU5YrTXX6Mcghs3wOVviKt4K36xNdfH3xjFO351_LGE8SHwRx0To8P7c4c9LI3F/exec';
 
         componentDidMount(){
           this.tick();
@@ -1063,6 +1099,70 @@
           }
         }
 
+        // ---- Валидация формы ----
+        // Разрешаем буквы (кириллица/латиница), пробелы и дефис в ФИО
+        filterFio(v){
+          return v.replace(/[^А-ЯЁа-яёA-Za-z\s-]/g, '').slice(0, 60);
+        }
+        // Разрешаем цифры и стандартные символы телефонного номера
+        filterPhone(v){
+          return v.replace(/[^\d+()\- ]/g, '').slice(0, 18);
+        }
+        validate(){
+          const fio = this.state.fio.trim();
+          const phoneDigits = this.state.phone.replace(/\D/g, '');
+          let fioError = '';
+          let phoneError = '';
+
+          if(!fio){
+            fioError = 'Укажите фамилию и имя';
+          } else if(fio.length < 2){
+            fioError = 'Слишком коротко';
+          } else if(!/^[А-ЯЁа-яёA-Za-z\s-]+$/.test(fio)){
+            fioError = 'Только буквы';
+          }
+
+          if(!phoneDigits){
+            phoneError = 'Укажите телефон';
+          } else if(phoneDigits.length < 10 || phoneDigits.length > 11){
+            phoneError = 'Проверьте номер телефона';
+          }
+
+          this.setState({fioError, phoneError});
+          return !fioError && !phoneError;
+        }
+        submit(){
+          if(this.state.sending || this.state.submitted) return;
+          if(!this.validate()) return;
+
+          this.setState({sending:true});
+
+          const payload = {
+            fio: this.state.fio.trim(),
+            count: this.state.count,
+            phone: this.state.phone.trim(),
+            nochleg: this.state.nochleg,
+          };
+
+          if(!this.GOOGLE_SCRIPT_URL || this.GOOGLE_SCRIPT_URL.indexOf('ВСТАВЬ') === 0){
+            // URL ещё не настроен — не теряем ответ гостя, показываем подтверждение локально
+            console.warn('GOOGLE_SCRIPT_URL не настроен — данные не отправлены в таблицу.');
+            this.setState({submitted:true, sending:false});
+            return;
+          }
+
+          // Google Apps Script не отвечает корректными CORS-заголовками на обычные запросы,
+          // поэтому используем no-cors: ответ прочитать нельзя, но данные доходят до таблицы.
+          fetch(this.GOOGLE_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload),
+          })
+            .then(() => this.setState({submitted:true, sending:false}))
+            .catch(() => this.setState({submitted:true, sending:false}));
+        }
+
         // Manual gallery — the browser's native scroll-snap handles the swipe,
         // we just read the resulting scroll position to update the dashes.
         onSlide(e){
@@ -1088,13 +1188,21 @@
             netCls:'radio'+(s.nochleg==='нет'?' on':''),
             musicBtnCls: 'musicbtn' + (s.playing ? ' playing' : ''),
             musicIcon: s.playing ? '' : '♫',
-            onFio:e=>this.setState({fio:e.target.value}),
-            onPhone:e=>this.setState({phone:e.target.value}),
-            inc:()=>this.setState(p=>({count:p.count+1})),
+            fioInpCls: 'inp' + (s.fioError ? ' err' : ''),
+            phoneInpCls: 'inp' + (s.phoneError ? ' err' : ''),
+            hasFioError: !!s.fioError,
+            hasPhoneError: !!s.phoneError,
+            fioError: s.fioError,
+            phoneError: s.phoneError,
+            submitCls: 'oval' + (s.sending ? ' disabled' : ''),
+            submitLabel: s.sending ? 'Отправка…' : 'Подтвердить присутствие',
+            onFio:e=>this.setState({fio:this.filterFio(e.target.value), fioError:''}),
+            onPhone:e=>this.setState({phone:this.filterPhone(e.target.value), phoneError:''}),
+            inc:()=>this.setState(p=>({count:Math.min(10,p.count+1)})),
             dec:()=>this.setState(p=>({count:Math.max(0,p.count-1)})),
             pickDa:()=>this.setState({nochleg:'да'}),
             pickNet:()=>this.setState({nochleg:'нет'}),
-            submit:()=>this.setState({submitted:true}),
+            submit:this.submit.bind(this),
             toggleMusic:this.toggleMusic.bind(this),
             onSlide:this.onSlide.bind(this),
           };
