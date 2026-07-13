@@ -754,8 +754,8 @@
 
         <section class="sec fadeup" style="padding-top: 30px">
           <p class="lead" style="margin: 0; margin-bottom: 20px;">
-            Сердечно приглашаем вас на торжество, посвящённое нашему бракосочетанию! Мы будем рады,
-            если вы проведёте этот счастливый день с нами.
+            Сердечно приглашаем Вас на торжество, посвящённое нашему бракосочетанию! Мы будем рады,
+            если Вы проведёте этот счастливый день с нами.
           </p>
           <div class="dtrow" style="margin-bottom: 10px;">
             <div class="dtcell">
@@ -819,7 +819,7 @@
               <input class="inp" placeholder="ФИО" value="{{ fio }}" onInput="{{ onFio }}" />
             </div>
             <div class="field">
-              <div class="flab">Количество человек вместе с вами (дети, супруг/а)</div>
+              <div class="flab">Количество человек вместе с Вами (дети, супруг/а)</div>
               <div class="step">
                 <span class="stbtn" onClick="{{ dec }}">−</span>
                 <div class="stval">{{ count }}</div>
@@ -843,7 +843,7 @@
             <div class="oval" onClick="{{ submit }}">Подтвердить присутствие</div></sc-if
           ><sc-if value="{{ submitted }}" hint-placeholder-val="{{ false }}"
             ><div class="thanks">
-              Спасибо! Ваше присутствие подтверждено.<br />Мы очень ждём встречи с вами.
+              Спасибо! Ваше присутствие подтверждено.<br />Мы очень ждём встречи с Вами.
             </div></sc-if
           >
         </section>
@@ -854,7 +854,7 @@
           </div>
           <div class="h1">Подарки</div>
           <p class="lead" style="margin-top: 33px">
-            Для вашего удобства выбор подарков можно согласовать по телефону:
+            Согласовать подарок можно по телефону:
           </p>
           <div class="gph" style="margin-top: 22px">
             <a href="tel:+79043788449">+7 (904) 378-84-49</a>
@@ -938,9 +938,12 @@
           this._tickT = setInterval(()=>this.tick(), 1000);
 
           // music — new Audio() object, same approach as the working first version.
+          // preload='auto' starts buffering immediately so the file is more
+          // likely to be ready by the time the user taps the envelope.
           this._audio = new Audio('./assets/music.mp3');
           this._audio.loop = true;
           this._audio.volume = 0.8;
+          this._audio.preload = 'auto';
           this._audio.addEventListener('ended', ()=>this.setState({playing:false}));
 
           // Scroll lock while envelope is showing
@@ -1005,10 +1008,34 @@
           // Unlock page scroll
           document.body.style.overflow = '';
           if(this._noScroll) document.removeEventListener('touchmove', this._noScroll);
-          // Call play() directly in the click handler, same as the reference project.
+          // Call play() NOW, during the gesture.
+          // iOS holds the gesture permission even while the file is buffering.
+          // If the file isn't ready yet (AbortError), we queue a canplay retry —
+          // the element is already "user-activated" by this call, so the retry succeeds.
           if(this._audio && !this.state.playing){
-            this._audio.play().catch(()=>{});
-            this.setState({playing:true});
+            this._audio.play()
+              .then(()=>{ this.setState({playing:true}); })
+              .catch((err)=>{
+                if(err.name !== 'NotAllowedError'){
+                  // Not a permissions error — audio just wasn't ready yet. Retry on canplay.
+                  this._audio.addEventListener('canplay', ()=>{
+                    this._audio.play()
+                      .then(()=>{ this.setState({playing:true}); })
+                      .catch(()=>{});
+                  }, { once: true });
+                } else {
+                  // Some strict mobile in-app browsers reject even a same-tap
+                  // play() call the first time. Retry on the very next touch/
+                  // click anywhere on the page — that's still a direct user
+                  // gesture, so the browser allows it.
+                  const retryOnNextGesture = () => {
+                    if(this.state.playing) return;
+                    this._audio.play().then(()=>{ this.setState({playing:true}); }).catch(()=>{});
+                  };
+                  document.addEventListener('touchend', retryOnNextGesture, { once: true, passive: true });
+                  document.addEventListener('click', retryOnNextGesture, { once: true });
+                }
+              });
           }
           setTimeout(()=>{ this.setState({envGone:true}); }, 2800);
         }
@@ -1019,8 +1046,20 @@
             this._audio.pause();
             this.setState({playing:false});
           } else {
-            this._audio.play().catch(()=>{});
-            this.setState({playing:true});
+            // play() is called directly in the user-gesture handler.
+            // If audio isn't buffered yet, AbortError is thrown — we retry on canplay.
+            // The element is already "user-activated" by this call, so the retry is allowed.
+            this._audio.play()
+              .then(()=>{ this.setState({playing:true}); })
+              .catch((err)=>{
+                if(err.name !== 'NotAllowedError'){
+                  this._audio.addEventListener('canplay', ()=>{
+                    this._audio.play()
+                      .then(()=>{ this.setState({playing:true}); })
+                      .catch(()=>{});
+                  }, { once: true });
+                }
+              });
           }
         }
 
