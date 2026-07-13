@@ -967,7 +967,7 @@
 
         // Вставь сюда URL веб-приложения Google Apps Script (см. инструкцию), например:
         // 'https://script.google.com/macros/s/AKfycb.../exec'
-        GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwz5QU5YrTXX6Mcghs3wOVviKt4K36xNdfH3xjFO351_LGE8SHwRx0To8P7c4c9LI3F/exec';
+        GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwbq_aqrlaT5ZlfjKqlxhXbV1P1hpaOT13vXPNRfKtpkwho_n0BpABKs6cUICVk5U4J/exec';
 
         componentDidMount(){
           this.tick();
@@ -1139,7 +1139,7 @@
 
           const payload = {
             fio: this.state.fio.trim(),
-            count: this.state.count,
+            count: String(this.state.count),
             phone: this.state.phone.trim(),
             nochleg: this.state.nochleg,
           };
@@ -1151,16 +1151,46 @@
             return;
           }
 
-          // Google Apps Script не отвечает корректными CORS-заголовками на обычные запросы,
-          // поэтому используем no-cors: ответ прочитать нельзя, но данные доходят до таблицы.
-          fetch(this.GOOGLE_SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify(payload),
-          })
-            .then(() => this.setState({submitted:true, sending:false}))
-            .catch(() => this.setState({submitted:true, sending:false}));
+          this._submitViaHiddenForm(payload);
+
+          // Прочитать реальный статус доставки браузер всё равно не даёт (ни через fetch/no-cors,
+          // ни через скрытый iframe) — поэтому просто показываем «спасибо» после небольшой паузы.
+          setTimeout(() => {
+            this.setState({submitted:true, sending:false});
+          }, 500);
+        }
+
+        // Отправка через обычную HTML-форму в скрытый iframe вместо fetch().
+        // fetch() к чужому домену часто блокируется встроенными браузерами
+        // Telegram/WhatsApp/Instagram (in-app browser) — там гости и открывают
+        // приглашение чаще всего. Обычная навигация формы такими браузерами не режется.
+        _submitViaHiddenForm(payload){
+          let iframe = document.getElementById('rsvpHiddenFrame');
+          if(!iframe){
+            iframe = document.createElement('iframe');
+            iframe.id = 'rsvpHiddenFrame';
+            iframe.name = 'rsvpHiddenFrame';
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
+          }
+
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = this.GOOGLE_SCRIPT_URL;
+          form.target = 'rsvpHiddenFrame';
+          form.style.display = 'none';
+
+          Object.keys(payload).forEach(key => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = payload[key];
+            form.appendChild(input);
+          });
+
+          document.body.appendChild(form);
+          form.submit();
+          setTimeout(() => form.remove(), 1000);
         }
 
         // Manual gallery — the browser's native scroll-snap handles the swipe,
