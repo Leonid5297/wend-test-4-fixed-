@@ -1,0 +1,1184 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&family=Montserrat:wght@300;400;500&family=Marck+Script&display=swap"
+          rel="stylesheet"
+        />
+        <style>
+          :root {
+            --bg: #eee6d8;
+            --ink: #43382b;
+            --body: #6f6355;
+            --muted: #9c8e7b;
+            --line: #c1b3a1;
+          }
+          * {
+            box-sizing: border-box;
+          }
+          body {
+            margin: 0;
+            background: #c2afa0;
+          }
+          a {
+            color: var(--ink);
+            text-decoration: none;
+          }
+          a:hover {
+            color: var(--body);
+          }
+          /* ENVELOPE */
+          .env-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition:
+              opacity 1.0s ease,
+              transform 1.0s ease;
+            overflow: hidden;
+          }
+          .env-screen.gone {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(30px);
+            transition-duration: 2.0s;
+          }
+          .env-names {
+            font-family: "Playfair Display", serif;
+            font-style: italic;
+            font-weight: 400;
+            color: var(--ink);
+            font-size: 44px;
+            line-height: 1.15;
+            text-align: center;
+            margin-bottom: 12px;
+            opacity: 0;
+            animation: efade 1.0s ease 0.375s forwards;
+          }
+          .env-date {
+            font-family: "Montserrat", sans-serif;
+            font-weight: 300;
+            letter-spacing: 6px;
+            font-size: 13px;
+            color: var(--muted);
+            text-align: center;
+            margin-bottom: 48px;
+            opacity: 0;
+            animation: efade 1.0s ease 0.625s forwards;
+          }
+          @keyframes efade {
+            to {
+              opacity: 1;
+            }
+          }
+          @keyframes envFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+          }
+          .envelope {
+            width: min(340px, 82vw);
+            aspect-ratio: 1.6/1;
+            position: relative;
+            cursor: pointer;
+            perspective: 800px;
+            animation: envFloat 5.4s ease-in-out infinite;
+          }
+          .envelope.opening {
+            animation: none;
+          }
+          .env-body {
+            position: absolute;
+            inset: 0;
+            background: #5b4234;
+            border-radius: 4px;
+            z-index: 2;
+            overflow: hidden;
+          }
+          .env-body::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.06) 0%, transparent 50%);
+          }
+          /* bottom flap - lighter triangle */
+          .env-bottom {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 55%;
+            z-index: 4;
+            clip-path: polygon(0 100%, 50% 15%, 100% 100%);
+            background: #6b5244;
+          }
+          .env-bottom::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent);
+          }
+          /* left flap */
+          .env-left {
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 52%;
+            z-index: 3;
+            clip-path: polygon(0 0, 100% 50%, 0 100%);
+            background: #4e3627;
+          }
+          /* right flap */
+          .env-right {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 52%;
+            z-index: 3;
+            clip-path: polygon(100% 0, 0 50%, 100% 100%);
+            background: #4a3223;
+          }
+          /* top flap - opens */
+          .env-top {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 55%;
+            z-index: 5;
+            clip-path: polygon(0 0, 50% 85%, 100% 0);
+            background: #523a2c;
+            transform-origin: top center;
+            transition: transform 0.875s ease;
+          }
+          .env-top::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(0, 0, 0, 0.08), transparent 60%);
+          }
+          .envelope.opening .env-top {
+            transform: rotateX(180deg);
+            transition-duration: 1.75s;
+          }
+          /* seal */
+          .seal {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 6;
+            width: 62px;
+            height: 62px;
+            border-radius: 50%;
+            background: radial-gradient(
+              circle at 38% 35%,
+              #e8c44a 0%,
+              #c6952e 40%,
+              #a07520 70%,
+              #8a6318 100%
+            );
+            box-shadow: 0 3px 12px rgba(60, 40, 10, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition:
+              opacity 0.5s ease,
+              transform 0.625s ease;
+          }
+          .seal-text {
+            font-family: "Marck Script", cursive;
+            font-size: 24px;
+            color: #5b3a1e;
+            line-height: 1;
+          }
+          .envelope.opening .seal {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(1.3);
+            transition-duration: 1.0s, 1.25s;
+          }
+          .envelope:not(.opening):hover .seal {
+            transform: translate(-50%, -50%) scale(1.16) rotate(7deg);
+          }
+          .env-hint {
+            font-family: "Marck Script", cursive;
+            font-size: 20px;
+            color: var(--muted);
+            text-align: center;
+            margin-top: 40px;
+            opacity: 0;
+            animation: efade 1.0s ease 1.125s forwards;
+          }
+          /* PAGE */
+          .page {
+            max-width: 460px;
+            margin: 0 auto;
+            background: var(--bg);
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+            color: var(--body);
+          }
+          .sec {
+            padding: 52px 32px 0px;
+          }
+          .h1 {
+            font-family: "Playfair Display", serif;
+            color: var(--ink);
+            font-weight: 500;
+            font-size: 52px;
+            line-height: 1.05;
+            text-align: center;
+            letter-spacing: 0.5px;
+          }
+          .lead {
+            font-family: "Montserrat", sans-serif;
+            font-weight: 300;
+            font-size: 17px;
+            line-height: 1.7;
+            text-align: center;
+            color: var(--body);
+          }
+          .divm {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin: 0 32px 42px;
+          }
+          .divm .ln {
+            height: 1px;
+            background: var(--line);
+            flex: 1;
+          }
+          .divm .dm {
+            width: 7px;
+            height: 7px;
+            background: var(--line);
+            transform: rotate(45deg);
+            flex: none;
+          }
+          .pframe {
+            width: 100%;
+            border-radius: 4px;
+            overflow: hidden;
+          }
+          .pframe img {
+            width: 100%;
+            height: auto;
+            display: block;
+          }
+          .pname {
+            font-family: "Montserrat", sans-serif;
+            font-weight: 300;
+            letter-spacing: 6px;
+            font-size: 26px;
+            color: var(--ink);
+            text-align: center;
+            margin: 34px 0 22px;
+          }
+          .verse {
+            font-family: "Playfair Display", serif;
+            font-style: italic;
+            font-size: 22px;
+            line-height: 1.45;
+            color: var(--body);
+            text-align: center;
+          }
+          .vref {
+            font-family: "Montserrat", sans-serif;
+            font-weight: 300;
+            font-size: 13px;
+            letter-spacing: 1px;
+            color: var(--muted);
+            text-align: right;
+            margin-top: 14px;
+          }
+          .dtrow {
+            display: flex;
+            margin-top: 8px;
+          }
+          .dtcell {
+            flex: 1;
+            text-align: center;
+            padding: 6px 8px;
+          }
+          .dtbig {
+            font-family: "Playfair Display", serif;
+            font-size: 34px;
+            color: var(--ink);
+            line-height: 1;
+          }
+          .dtsm {
+            font-family: "Montserrat", sans-serif;
+            font-weight: 300;
+            font-size: 13px;
+            color: var(--body);
+            margin-top: 8px;
+            line-height: 1.4;
+          }
+          .dtsep {
+            width: 1px;
+            background: var(--line);
+            align-self: stretch;
+            margin: 4px 0;
+          }
+          .swrow {
+            display: flex;
+            justify-content: center;
+            gap: clamp(4px, 1.5vw, 10px);
+            flex-wrap: nowrap;
+            width: 100%;
+          }
+          .swatch {
+            width: clamp(54px, 14.5vw, 76px);
+            height: clamp(54px, 14.5vw, 76px);
+            border-radius: 50%;
+            box-shadow: 0 4px 18px rgba(80, 66, 48, 0.18);
+            flex: none;
+          }
+          .tl {
+            position: relative;
+            margin-top: 66px;
+          }
+          .tlitem {
+            position: relative;
+            padding-left: 52px;
+            padding-bottom: 60px;
+          }
+          .tlitem:last-child {
+            padding-bottom: 0;
+          }
+          .tlitem::before {
+            content: "";
+            position: absolute;
+            left: 13px;
+            top: 28px;
+            bottom: 0;
+            width: 1px;
+            background: var(--line);
+          }
+          .tlitem:last-child::before {
+            display: none;
+          }
+          .tldot {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 27px;
+            height: 27px;
+            border: 1.5px solid var(--ink);
+            border-radius: 50%;
+            background: var(--bg);
+          }
+          .tltime {
+            font-family: "Playfair Display", serif;
+            font-size: 30px;
+            color: var(--ink);
+            line-height: 1;
+          }
+          .tllab {
+            font-family: "Montserrat", sans-serif;
+            font-weight: 300;
+            font-size: 19px;
+            color: var(--body);
+            margin-top: 14px;
+          }
+          .field {
+            margin-top: 34px;
+          }
+          .flab {
+            font-family: "Montserrat", sans-serif;
+            font-weight: 400;
+            font-size: 16px;
+            color: var(--ink);
+            margin-bottom: 14px;
+          }
+          .inp {
+            width: 100%;
+            background: transparent;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            padding: 20px 22px;
+            font-family: "Montserrat", sans-serif;
+            font-weight: 300;
+            font-size: 16px;
+            color: var(--ink);
+            outline: none;
+          }
+          .inp::placeholder {
+            color: var(--muted);
+          }
+          .inp:focus {
+            border-color: var(--ink);
+          }
+          .step {
+            display: flex;
+            align-items: center;
+            gap: 22px;
+          }
+          .stbtn {
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            color: var(--body);
+            cursor: pointer;
+            user-select: none;
+          }
+          .stval {
+            width: 62px;
+            height: 62px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: "Montserrat", sans-serif;
+            font-weight: 300;
+            font-size: 24px;
+            color: var(--ink);
+          }
+          .radio {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 10px 0;
+            cursor: pointer;
+            font-family: "Montserrat", sans-serif;
+            font-weight: 300;
+            font-size: 18px;
+            color: var(--body);
+          }
+          .radio .rc {
+            width: 26px;
+            height: 26px;
+            border: 1.5px solid var(--line);
+            border-radius: 50%;
+            position: relative;
+            flex: none;
+          }
+          .radio.on .rc {
+            border-color: var(--ink);
+          }
+          .radio.on .rc::after {
+            content: "";
+            position: absolute;
+            inset: 5px;
+            border-radius: 50%;
+            background: var(--ink);
+          }
+          .radio.on {
+            color: var(--ink);
+          }
+          .oval {
+            border: 1px solid var(--line);
+            border-radius: 120px/60px;
+            padding: 26px 20px;
+            text-align: center;
+            cursor: pointer;
+            background: transparent;
+            font-family: "Montserrat", sans-serif;
+            font-weight: 300;
+            font-size: 18px;
+            color: var(--ink);
+            letter-spacing: 0.5px;
+            margin-top: 40px;
+            transition: background 0.35s ease, color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+          }
+          .oval:hover {
+            background: var(--ink);
+            color: var(--bg);
+            border-color: var(--ink);
+            box-shadow: 0 6px 24px rgba(67, 56, 43, 0.22);
+          }
+          .oval:active {
+            background: var(--ink);
+            color: var(--bg);
+            border-color: var(--ink);
+            opacity: 0.82;
+            transform: scale(0.98);
+          }
+          .gph {
+            font-family: "Montserrat", sans-serif;
+            font-weight: 400;
+            font-size: 22px;
+            text-align: center;
+            margin-top: 8px;
+          }
+          .gph a {
+            border-bottom: 1px solid var(--muted);
+            padding-bottom: 2px;
+            color: var(--ink);
+          }
+          .cline {
+            text-align: center;
+            margin: 30px 0;
+          }
+          .cnum {
+            font-family: "Montserrat", sans-serif;
+            font-weight: 400;
+            font-size: 22px;
+            color: var(--ink);
+          }
+          .cnum a {
+            border-bottom: 1px solid var(--muted);
+            padding-bottom: 2px;
+          }
+          .cname {
+            font-family: "Montserrat", sans-serif;
+            font-weight: 300;
+            font-size: 16px;
+            color: var(--body);
+            margin-top: 6px;
+          }
+          .cdtitle {
+            font-family: "Montserrat", sans-serif;
+            font-weight: 300;
+            letter-spacing: 6px;
+            font-size: 22px;
+            color: var(--ink);
+            text-align: center;
+          }
+          .cd {
+            display: flex;
+            margin-top: 40px;
+          }
+          .cdcell {
+            flex: 1;
+            text-align: center;
+            padding: 0 6px;
+          }
+          .cdcell + .cdcell {
+            border-left: 1px solid var(--line);
+          }
+          .cdnum {
+            font-family: "Playfair Display", serif;
+            font-size: 44px;
+            color: var(--ink);
+            line-height: 1;
+          }
+          .cdlab {
+            font-family: "Montserrat", sans-serif;
+            font-weight: 300;
+            font-size: 13px;
+            color: var(--body);
+            margin-top: 12px;
+          }
+          .dashrow {
+            display: flex;
+            gap: 8px;
+          }
+          .dash-wrap {
+            height: 2px;
+            flex: 1;
+            background: rgba(193, 179, 161, 0.35);
+            position: relative;
+            overflow: hidden;
+            border-radius: 2px;
+          }
+          .dash-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            background: var(--ink);
+            width: 0;
+          }
+          @keyframes fillBar {
+            from { width: 0%; }
+            to   { width: 100%; }
+          }
+          .slider {
+            overflow: hidden;
+            position: relative;
+            border-radius: 4px;
+          }
+          .slide-track {
+            display: flex;
+            transition: transform 0.75s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform;
+          }
+          .slide-track.dragging {
+            transition: none; /* real-time drag — no transition lag */
+          }
+          .slide {
+            flex: 0 0 100%;
+            overflow: hidden;
+          }
+          .slide img {
+            width: 100%;
+            display: block;
+            aspect-ratio: 2/3;
+            object-fit: cover;
+          }
+          .hero {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 52px 32px;
+          }
+          .heroT {
+            font-family: "Playfair Display", serif;
+            color: var(--ink);
+            font-weight: 400;
+            font-size: 52px;
+            line-height: 1.08;
+            text-align: center;
+          }
+          .musicbtn {
+            position: fixed;
+            bottom: 26px;
+            right: calc(50% - 230px + 26px);
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            border: 1px solid var(--line);
+            background: rgba(238, 230, 216, 0.92);
+            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--ink);
+            font-size: 22px;
+            line-height: 1;
+            z-index: 40;
+            box-shadow: 0 2px 14px rgba(80, 66, 48, 0.18);
+          }
+          /* ♫ text shows when not playing; CSS pause bars show when .playing */
+          .musicbtn::before {
+            display: none;
+          }
+          .musicbtn.playing::before {
+            content: '';
+            display: block;
+            width: 4px;
+            height: 17px;
+            background: var(--ink);
+            border: none;
+            box-shadow: 8px 0 0 0 var(--ink);
+            border-radius: 1px;
+            margin-left: -6px; /* centers: 4px + 8px gap + 4px = 16px total, shift left so it's centred in 56px btn */
+          }
+          .thanks {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 28px;
+            text-align: center;
+            margin-top: 8px;
+            font-family: "Montserrat", sans-serif;
+            font-weight: 300;
+            font-size: 16px;
+            color: var(--ink);
+            line-height: 1.6;
+          }
+          .fadeup {
+            opacity: 0;
+            transform: translateY(22px);
+            transition:
+              opacity 1.5s ease,
+              transform 1.5s ease;
+          }
+          .fadeup.vis {
+            opacity: 1;
+            transform: translateY(0);
+          }
+          .particle {
+            position: fixed;
+            pointer-events: none;
+            z-index: 30;
+            border-radius: 50%;
+            opacity: 0;
+            animation: floatup linear infinite;
+          }
+          @keyframes floatup {
+            0% {
+              opacity: 0;
+              transform: translateY(0) scale(0.5);
+            }
+            10% {
+              opacity: 0.45;
+            }
+            90% {
+              opacity: 0.35;
+            }
+            100% {
+              opacity: 0;
+              transform: translateY(-100vh) scale(1);
+            }
+          }
+          @media (max-width: 520px) {
+            .musicbtn {
+              right: 22px;
+            }
+          }
+        </style>
+      </helmet>
+      <sc-if value="{{ showEnvelope }}" hint-placeholder-val="{{ true }}"
+        ><div class="{{ envCls }}" onClick="{{ openEnvelope }}">
+          <div class="env-names">Александр и Мария</div>
+          <div class="env-date">16 · 08 · 2026</div>
+          <div class="{{ envElCls }}">
+            <div class="env-body"></div>
+            <div class="env-left"></div>
+            <div class="env-right"></div>
+            <div class="env-bottom"></div>
+            <div class="env-top"></div>
+            <div class="seal"><span class="seal-text">АМ</span></div>
+          </div>
+          <div class="env-hint">Нажмите на конверт, чтобы открыть</div>
+        </div></sc-if
+      >
+      <div class="page">
+        <section class="sec fadeup" style="padding-top: 32px; padding-bottom: 0">
+          <div class="pframe"><img src="assets/main-photo.jpg" alt="Александр и Мария" /></div>
+          <div class="pname">АЛЕКСАНДР &amp; МАРИЯ</div>
+          <div class="verse">«Господь помнит нас, благословляет нас…»</div>
+          <div class="vref">Псалом&nbsp;113:20</div>
+        </section>
+
+        <section class="sec fadeup" style="padding-top: 30px">
+          <p class="lead" style="margin: 0; margin-bottom: 20px;">
+            Сердечно приглашаем вас на торжество, посвящённое нашему бракосочетанию! Мы будем рады,
+            если вы проведёте этот счастливый день с нами.
+          </p>
+          <div class="dtrow" style="margin-bottom: 10px;">
+            <div class="dtcell">
+              <div class="dtbig">16</div>
+              <div class="dtsm">августа</div>
+            </div>
+            <div class="dtsep"></div>
+            <div class="dtcell">
+              <div class="dtsm" style="margin-top: 0">г. Томск<br />ул. Большая Подгорная, 48</div>
+            </div>
+            <div class="dtsep"></div>
+            <div class="dtcell">
+              <div class="dtbig">11:00</div>
+              <div class="dtsm">воскресенье</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="sec fadeup" style="padding-top: 20px;">
+          <div class="swrow">
+            <span class="swatch" style="background: #5b4234"></span
+            ><span class="swatch" style="background: #7b8d6a"></span
+            ><span class="swatch" style="background: #d4b3ba"></span
+            ><span class="swatch" style="background: #dcd2c1"></span
+            ><span class="swatch" style="background: #faf6e8; border: 1px solid #ddd6cb"></span>
+          </div>
+        </section>
+
+        <section class="sec fadeup">
+          <div class="divm">
+            <span class="ln"></span><span class="dm"></span><span class="ln"></span>
+          </div>
+          <div class="h1">Программа</div>
+          <div class="tl">
+            <div class="tlitem">
+              <span class="tldot"></span>
+              <div class="tltime">11:00</div>
+              <div class="tllab">Венчание</div>
+            </div>
+            <div class="tlitem">
+              <span class="tldot"></span>
+              <div class="tltime">13:00</div>
+              <div class="tllab">Праздничный обед</div>
+            </div>
+            <div class="tlitem">
+              <span class="tldot"></span>
+              <div class="tltime">15:00</div>
+              <div class="tllab">Поздравительная часть</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="sec fadeup">
+          <div class="divm">
+            <span class="ln"></span><span class="dm"></span><span class="ln"></span>
+          </div>
+          <div class="h1">Регистрация</div>
+          <sc-if value="{{ notSubmitted }}" hint-placeholder-val="{{ true }}"
+            ><div class="field" style="margin-top: 51px">
+              <div class="flab">Фамилия и имя</div>
+              <input class="inp" placeholder="ФИО" value="{{ fio }}" onInput="{{ onFio }}" />
+            </div>
+            <div class="field">
+              <div class="flab">Количество человек вместе с вами (дети, супруг/а)</div>
+              <div class="step">
+                <span class="stbtn" onClick="{{ dec }}">−</span>
+                <div class="stval">{{ count }}</div>
+                <span class="stbtn" onClick="{{ inc }}">+</span>
+              </div>
+            </div>
+            <div class="field">
+              <div class="flab">Ваш телефон</div>
+              <input
+                class="inp"
+                placeholder="+7 (999) 999-9999"
+                value="{{ phone }}"
+                onInput="{{ onPhone }}"
+              />
+            </div>
+            <div class="field">
+              <div class="flab">Нужно ли вам место для ночлега?</div>
+              <div class="{{ daCls }}" onClick="{{ pickDa }}"><span class="rc"></span>да</div>
+              <div class="{{ netCls }}" onClick="{{ pickNet }}"><span class="rc"></span>нет</div>
+            </div>
+            <div class="oval" onClick="{{ submit }}">Подтвердить присутствие</div></sc-if
+          ><sc-if value="{{ submitted }}" hint-placeholder-val="{{ false }}"
+            ><div class="thanks">
+              Спасибо! Ваше присутствие подтверждено.<br />Мы очень ждём встречи с вами.
+            </div></sc-if
+          >
+        </section>
+
+        <section class="sec fadeup">
+          <div class="divm">
+            <span class="ln"></span><span class="dm"></span><span class="ln"></span>
+          </div>
+          <div class="h1">Подарки</div>
+          <p class="lead" style="margin-top: 33px">
+            Для вашего удобства выбор подарков можно согласовать по телефону:
+          </p>
+          <div class="gph" style="margin-top: 22px">
+            <a href="tel:+79043788449">+7 (904) 378-84-49</a>
+          </div>
+          <div class="cline" style="margin: 6px 0 0"><div class="cname">Анна</div></div>
+          <p class="lead" style="margin-top: 36px">
+            Лучшим подарком станет вклад в бюджет нашей семьи.
+          </p>
+        </section>
+
+        <section class="sec fadeup">
+          <div class="divm">
+            <span class="ln"></span><span class="dm"></span><span class="ln"></span>
+          </div>
+          <div class="h1">Контакты</div>
+          <div style="margin-top: 54px">
+            <div class="cline">
+              <div class="cnum"><a href="tel:+79521832878">+7 (952) 183-28-78</a></div>
+              <div class="cname">Александр</div>
+            </div>
+            <div class="cline" style="margin-bottom:10px">
+              <div class="cnum"><a href="tel:+79502779785">+7 (950) 277-97-85</a></div>
+              <div class="cname">Мария</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="sec fadeup">
+          <div class="divm">
+            <span class="ln"></span><span class="dm"></span><span class="ln"></span>
+          </div>
+          <div class="cdtitle">МЫ СТАНЕМ СЕМЬЁЙ ЧЕРЕЗ…</div>
+          <div class="cd">
+            <div class="cdcell">
+              <div class="cdnum">{{ cdD }}</div>
+              <div class="cdlab">Дней</div>
+            </div>
+            <div class="cdcell">
+              <div class="cdnum">{{ cdH }}</div>
+              <div class="cdlab">Часов</div>
+            </div>
+            <div class="cdcell">
+              <div class="cdnum">{{ cdM }}</div>
+              <div class="cdlab">Минут</div>
+            </div>
+            <div class="cdcell">
+              <div class="cdnum">{{ cdS }}</div>
+              <div class="cdlab">Секунд</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="sec fadeup" data-gallery="1">
+          <div class="dashrow">
+            <sc-for list="{{ dashes }}" as="d" hint-placeholder-count="5"
+              ><div class="dash-wrap"><div class="dash-fill" style="{{ d.fillStyle }}"></div></div
+            ></sc-for>
+          </div>
+          <div
+            class="slider"
+            onMouseDown="{{ onSliderDown }}"
+            onMouseUp="{{ onSliderUp }}"
+            onMouseLeave="{{ onSliderUp }}"
+            onTouchStart="{{ onTouchStart }}"
+            onTouchEnd="{{ onTouchEnd }}"
+            style="margin-top: 22px"
+          >
+            <div class="slide-track" style="{{ trackStyle }}">
+              <div class="slide"><img src="assets/foto1.jpg" alt /></div>
+              <div class="slide"><img src="assets/foto2.jpg" alt /></div>
+              <div class="slide"><img src="assets/foto5.jpg" alt /></div>
+              <div class="slide"><img src="assets/foto4.jpg" alt /></div>
+              <div class="slide"><img src="assets/foto6.jpg" alt /></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="hero fadeup">
+          <div class="heroT">Молитесь<br />о нас</div>
+        </section>
+
+        <div class="{{ musicBtnCls }}" onClick="{{ toggleMusic }}">{{ musicIcon }}</div>
+      </div>
+    </x-dc>
+    <script type="text/x-dc" data-dc-script>
+      class Component extends DCLogic {
+        state = { envOpen:false, envGone:false, fio:'', count:0, phone:'', nochleg:'', submitted:false, d:'00',h:'00',m:'00',s:'00', slide:0, paused:false, animReset:false, playing:false, galleryActive:false };
+
+        componentDidMount(){
+          this.tick();
+          this._tickT = setInterval(()=>this.tick(), 1000);
+
+          // gallery auto-advance
+          this._galleryObs = new IntersectionObserver((entries)=>{
+            entries.forEach(e=>{
+              if(e.isIntersecting && !this.state.galleryActive){
+                this.setState({galleryActive:true});
+                this._startSlideshow();
+                this._galleryObs.unobserve(e.target);
+              }
+            });
+          }, {threshold:0.3});
+          const galEl = document.querySelector('[data-gallery]');
+          if(galEl) this._galleryObs.observe(galEl);
+
+          // ==== МУЗЫКА — упрощённый подход ====
+          this._audio = new Audio('./assets/music.mp3');
+          this._audio.volume = 0.8;
+          this._audio.loop = true;
+          this._audio.preload = 'auto';
+          this._audio.setAttribute('playsinline', ''); // помогает на iOS
+          this._audio.load(); // начинаем загрузку сразу
+
+          // Опционально: разблокировка AudioContext по первому касанию (для iOS)
+          const unlock = () => {
+            try {
+              const Ctx = window.AudioContext || window.webkitAudioContext;
+              if (Ctx) {
+                const ctx = new Ctx();
+                ctx.resume().then(() => ctx.close());
+              }
+            } catch(e) {}
+            document.removeEventListener('touchstart', unlock);
+            document.removeEventListener('click', unlock);
+          };
+          document.addEventListener('touchstart', unlock, { once: true, passive: true });
+          document.addEventListener('click', unlock, { once: true, passive: true });
+          // ================================
+
+          // Scroll lock while envelope is showing
+          this._noScroll = (e) => e.preventDefault();
+          document.body.style.overflow = 'hidden';
+          document.addEventListener('touchmove', this._noScroll, { passive: false });
+
+          // Slider native touchmove
+          setTimeout(() => {
+            const sliderEl = document.querySelector('.slider');
+            if (sliderEl) {
+              this._sliderTouchMove = (e) => {
+                if (!this._touchX) return;
+                e.preventDefault();
+                const track = sliderEl.querySelector('.slide-track');
+                if (!track) return;
+                track.classList.add('dragging');
+                let dx = e.touches[0].clientX - this._touchX;
+                if(this.state.slide === 0 && dx > 0) dx = 0;
+                if(this.state.slide === 4 && dx < 0) dx = 0;
+                track.style.transform = `translateX(calc(-${this.state.slide * 100}% + ${dx}px))`;
+              };
+              sliderEl.addEventListener('touchmove', this._sliderTouchMove, { passive: false });
+              this._sliderEl = sliderEl;
+            }
+          }, 50);
+
+          // fade-in on scroll
+          this._obs = new IntersectionObserver((entries)=>{
+            entries.forEach(e=>{
+              if(e.isIntersecting){ e.target.classList.add('vis'); }
+              else if(e.boundingClientRect.top > 0){ e.target.classList.remove('vis'); }
+            });
+          }, {threshold:0.08});
+          document.querySelectorAll('.fadeup').forEach(el=>this._obs.observe(el));
+
+          // ambient floating particles
+          this._spawnParticles();
+        }
+
+        _startSlideshow(){
+          if(this._slideT) return;
+          this._slideT = setInterval(()=>{
+            this.setState(prev=>({ slide: (prev.slide + 1) % 5 }));
+          }, 4000);
+        }
+
+        _spawnParticles(){
+          const page = document.querySelector('.page');
+          if(!page) return;
+          const colors = ['rgba(193,179,161,.25)','rgba(91,66,52,.12)','rgba(123,141,106,.15)','rgba(212,179,186,.2)'];
+          const spawn = ()=>{
+            const p = document.createElement('div');
+            p.className = 'particle';
+            const sz = 4 + Math.random()*6;
+            const x = Math.random()*100;
+            const dur = 12 + Math.random()*18;
+            const delay = Math.random()*4;
+            p.style.cssText = 'width:'+sz+'px;height:'+sz+'px;left:'+x+'%;bottom:-10px;background:'+colors[Math.floor(Math.random()*colors.length)]+';animation-duration:'+dur+'s;animation-delay:'+delay+'s';
+            page.appendChild(p);
+            setTimeout(()=>p.remove(), (dur+delay)*1000);
+          };
+          for(let i=0;i<6;i++) spawn();
+          this._particleT = setInterval(()=>{ for(let i=0;i<3;i++) spawn(); }, 5000);
+        }
+
+        componentWillUnmount(){
+          clearInterval(this._tickT);
+          clearInterval(this._slideT);
+          clearInterval(this._particleT);
+          if(this._audio){ this._audio.pause(); this._audio.src=''; }
+          if(this._obs) this._obs.disconnect();
+          if(this._galleryObs) this._galleryObs.disconnect();
+          if(this._noScroll) document.removeEventListener('touchmove', this._noScroll);
+          if(this._sliderEl && this._sliderTouchMove) this._sliderEl.removeEventListener('touchmove', this._sliderTouchMove);
+        }
+
+        tick(){
+          const target = new Date('2026-08-16T11:00:00+07:00').getTime();
+          let diff = Math.max(0, target - Date.now());
+          const pad = n=>String(n).padStart(2,'0');
+          const d = Math.floor(diff/86400000); diff -= d*86400000;
+          const h = Math.floor(diff/3600000); diff -= h*3600000;
+          const m = Math.floor(diff/60000); diff -= m*60000;
+          const s = Math.floor(diff/1000);
+          this.setState({d:pad(d),h:pad(h),m:pad(m),s:pad(s)});
+        }
+
+        openEnvelope(){
+          if(this.state.envOpen) return;
+          this.setState({envOpen:true});
+          // Unlock page scroll
+          document.body.style.overflow = '';
+          if(this._noScroll) document.removeEventListener('touchmove', this._noScroll);
+
+          // ==== ПРОСТОЙ ЗАПУСК МУЗЫКИ ====
+          if(this._audio && !this.state.playing){
+            this._audio.play().catch(()=>{}); // игнорируем ошибки – кнопка поможет
+            this.setState({playing:true}); // всё равно показываем иконку "играет"
+          }
+
+          setTimeout(()=>{ this.setState({envGone:true}); }, 2800);
+        }
+
+        toggleMusic(){
+          if(!this._audio) return;
+          if(this.state.playing){
+            this._audio.pause();
+            this.setState({playing:false});
+          } else {
+            this._audio.play().catch(()=>{});
+            this.setState({playing:true});
+          }
+        }
+
+        onTouchStart(e){
+          this._touchX = e.touches[0].clientX;
+          if(this._slideT){ clearInterval(this._slideT); this._slideT = null; }
+          this.setState({paused: true});
+        }
+
+        onTouchEnd(e){
+          const track = document.querySelector('.slide-track');
+          const dx = e.changedTouches[0].clientX - (this._touchX || 0);
+          this._touchX = 0;
+          let newSlide = this.state.slide;
+          if(Math.abs(dx) > 60){
+            const dir = dx < 0 ? 1 : -1;
+            newSlide = Math.max(0, Math.min(4, this.state.slide + dir));
+          }
+          if(track){
+            track.classList.remove('dragging');
+            track.style.transform = `translateX(-${newSlide * 100}%)`;
+          }
+          this.setState({slide: newSlide, paused: false, animReset: true});
+          requestAnimationFrame(()=>requestAnimationFrame(()=>{
+            this.setState({animReset: false});
+            this._startSlideshow();
+          }));
+        }
+
+        onSliderDown(){
+          if(this._slideT){ clearInterval(this._slideT); this._slideT = null; }
+          this.setState({paused: true});
+        }
+
+        onSliderUp(){
+          this.setState({paused: false, animReset: true});
+          requestAnimationFrame(()=>requestAnimationFrame(()=>{
+            this.setState({animReset: false});
+            this._startSlideshow();
+          }));
+        }
+
+        renderVals(){
+          const s = this.state;
+          const dashes = Array.from({length:5}, (_,i)=>{
+            const done   = i < s.slide;
+            const active = i === s.slide;
+            if(done)   return { fillStyle: { width:'100%', animation:'none' } };
+            if(active) return { fillStyle: (s.animReset || !s.galleryActive)
+              ? { width:'0%', animation:'none' }
+              : { animation:'fillBar 4s linear forwards', animationPlayState: s.paused ? 'paused' : 'running' } };
+            return       { fillStyle: { width:'0%',   animation:'none' } };
+          });
+          return {
+            showEnvelope: !s.envGone,
+            envCls: 'env-screen' + (s.envOpen ? ' gone' : ''),
+            envElCls: 'envelope' + (s.envOpen ? ' opening' : ''),
+            openEnvelope: this.openEnvelope.bind(this),
+            fio:s.fio, phone:s.phone, count:s.count, submitted:s.submitted, notSubmitted:!s.submitted,
+            cdD:s.d, cdH:s.h, cdM:s.m, cdS:s.s,
+            dashes,
+            trackStyle: { transform: `translateX(-${s.slide * 100}%)` },
+            daCls:'radio'+(s.nochleg==='да'?' on':''),
+            netCls:'radio'+(s.nochleg==='нет'?' on':''),
+            musicBtnCls: 'musicbtn' + (s.playing ? ' playing' : ''),
+            musicIcon: s.playing ? '' : '♫',
+            onFio:e=>this.setState({fio:e.target.value}),
+            onPhone:e=>this.setState({phone:e.target.value}),
+            inc:()=>this.setState(p=>({count:p.count+1})),
+            dec:()=>this.setState(p=>({count:Math.max(0,p.count-1)})),
+            pickDa:()=>this.setState({nochleg:'да'}),
+            pickNet:()=>this.setState({nochleg:'нет'}),
+            submit:()=>this.setState({submitted:true}),
+            toggleMusic:this.toggleMusic.bind(this),
+            onTouchStart:this.onTouchStart.bind(this),
+            onTouchEnd:this.onTouchEnd.bind(this),
+            onSliderDown:this.onSliderDown.bind(this),
+            onSliderUp:this.onSliderUp.bind(this),
+          };
+        }
+      }
+    </script>
+  </body>
+</html>
