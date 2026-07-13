@@ -601,26 +601,22 @@
             height: 100%;
             background: var(--ink);
             width: 0;
-          }
-          @keyframes fillBar {
-            from { width: 0%; }
-            to   { width: 100%; }
+            transition: width 0.25s ease;
           }
           .slider {
-            overflow: hidden;
-            position: relative;
+            display: flex;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
             border-radius: 4px;
           }
-          .slide-track {
-            display: flex;
-            transition: transform 0.75s cubic-bezier(0.4, 0, 0.2, 1);
-            will-change: transform;
-          }
-          .slide-track.dragging {
-            transition: none; /* real-time drag — no transition lag */
+          .slider::-webkit-scrollbar {
+            display: none;
           }
           .slide {
             flex: 0 0 100%;
+            scroll-snap-align: center;
             overflow: hidden;
           }
           .slide img {
@@ -748,6 +744,7 @@
           <div class="env-hint">Нажмите на конверт, чтобы открыть</div>
         </div></sc-if
       >
+      <audio id="bg-music" loop preload="auto" playsinline webkit-playsinline src="./assets/music.mp3"></audio>
       <div class="page">
         <section class="sec fadeup" style="padding-top: 32px; padding-bottom: 0">
           <div class="pframe"><img src="assets/main-photo.jpg" alt="Александр и Мария" /></div>
@@ -911,28 +908,18 @@
           </div>
         </section>
 
-        <section class="sec fadeup" data-gallery="1">
+        <section class="sec fadeup">
           <div class="dashrow">
             <sc-for list="{{ dashes }}" as="d" hint-placeholder-count="5"
               ><div class="dash-wrap"><div class="dash-fill" style="{{ d.fillStyle }}"></div></div
             ></sc-for>
           </div>
-          <div
-            class="slider"
-            onMouseDown="{{ onSliderDown }}"
-            onMouseUp="{{ onSliderUp }}"
-            onMouseLeave="{{ onSliderUp }}"
-            onTouchStart="{{ onTouchStart }}"
-            onTouchEnd="{{ onTouchEnd }}"
-            style="margin-top: 22px"
-          >
-            <div class="slide-track" style="{{ trackStyle }}">
-              <div class="slide"><img src="assets/foto1.jpg" alt /></div>
-              <div class="slide"><img src="assets/foto2.jpg" alt /></div>
-              <div class="slide"><img src="assets/foto5.jpg" alt /></div>
-              <div class="slide"><img src="assets/foto4.jpg" alt /></div>
-              <div class="slide"><img src="assets/foto6.jpg" alt /></div>
-            </div>
+          <div class="slider" onScroll="{{ onSlide }}" style="margin-top: 22px">
+            <div class="slide"><img src="assets/foto1.jpg" alt /></div>
+            <div class="slide"><img src="assets/foto2.jpg" alt /></div>
+            <div class="slide"><img src="assets/foto5.jpg" alt /></div>
+            <div class="slide"><img src="assets/foto4.jpg" alt /></div>
+            <div class="slide"><img src="assets/foto6.jpg" alt /></div>
           </div>
         </section>
 
@@ -945,75 +932,32 @@
     </x-dc>
     <script type="text/x-dc" data-dc-script>
       class Component extends DCLogic {
-        state = { envOpen:false, envGone:false, fio:'', count:0, phone:'', nochleg:'', submitted:false, d:'00',h:'00',m:'00',s:'00', slide:0, paused:false, animReset:false, playing:false, galleryActive:false };
+        state = { envOpen:false, envGone:false, fio:'', count:0, phone:'', nochleg:'', submitted:false, d:'00',h:'00',m:'00',s:'00', slide:0, playing:false };
 
         componentDidMount(){
           this.tick();
           this._tickT = setInterval(()=>this.tick(), 1000);
 
-          // gallery auto-advance
-          this._galleryObs = new IntersectionObserver((entries)=>{
-            entries.forEach(e=>{
-              if(e.isIntersecting && !this.state.galleryActive){
-                this.setState({galleryActive:true});
-                this._startSlideshow();
-                this._galleryObs.unobserve(e.target);
-              }
-            });
-          }, {threshold:0.3});
-          const galEl = document.querySelector('[data-gallery]');
-          if(galEl) this._galleryObs.observe(galEl);
-
-          // ==== МУЗЫКА — упрощённый подход ====
-          this._audio = new Audio('./assets/music.mp3');
-          this._audio.volume = 0.8;
-          this._audio.loop = true;
-          this._audio.preload = 'auto';
-          this._audio.setAttribute('playsinline', ''); // помогает на iOS
-          this._audio.load(); // начинаем загрузку сразу
-
-          // Опционально: разблокировка AudioContext по первому касанию (для iOS)
-          const unlock = () => {
-            try {
-              const Ctx = window.AudioContext || window.webkitAudioContext;
-              if (Ctx) {
-                const ctx = new Ctx();
-                ctx.resume().then(() => ctx.close());
-              }
-            } catch(e) {}
-            document.removeEventListener('touchstart', unlock);
-            document.removeEventListener('click', unlock);
-          };
-          document.addEventListener('touchstart', unlock, { once: true, passive: true });
-          document.addEventListener('click', unlock, { once: true, passive: true });
-          // ================================
+          // music — a real <audio> element living in the DOM (not a detached
+          // new Audio() object). Several mobile in-app browsers (Telegram,
+          // VK, Instagram webview) silently refuse to play a detached Audio
+          // instance even after a user gesture, while an element that's
+          // actually part of the page plays reliably. preload='auto' starts
+          // buffering immediately so the file is more likely to be ready by
+          // the time the user taps the envelope.
+          this._audio = document.getElementById('bg-music');
+          if(this._audio){
+            this._audio.volume = 0.8;
+            this._audio.loop = true;
+            this._audio.preload = 'auto';
+          }
 
           // Scroll lock while envelope is showing
           this._noScroll = (e) => e.preventDefault();
           document.body.style.overflow = 'hidden';
           document.addEventListener('touchmove', this._noScroll, { passive: false });
 
-          // Slider native touchmove
-          setTimeout(() => {
-            const sliderEl = document.querySelector('.slider');
-            if (sliderEl) {
-              this._sliderTouchMove = (e) => {
-                if (!this._touchX) return;
-                e.preventDefault();
-                const track = sliderEl.querySelector('.slide-track');
-                if (!track) return;
-                track.classList.add('dragging');
-                let dx = e.touches[0].clientX - this._touchX;
-                if(this.state.slide === 0 && dx > 0) dx = 0;
-                if(this.state.slide === 4 && dx < 0) dx = 0;
-                track.style.transform = `translateX(calc(-${this.state.slide * 100}% + ${dx}px))`;
-              };
-              sliderEl.addEventListener('touchmove', this._sliderTouchMove, { passive: false });
-              this._sliderEl = sliderEl;
-            }
-          }, 50);
-
-          // fade-in on scroll
+          // fade-in on scroll — repeats when re-entering from below only
           this._obs = new IntersectionObserver((entries)=>{
             entries.forEach(e=>{
               if(e.isIntersecting){ e.target.classList.add('vis'); }
@@ -1024,13 +968,6 @@
 
           // ambient floating particles
           this._spawnParticles();
-        }
-
-        _startSlideshow(){
-          if(this._slideT) return;
-          this._slideT = setInterval(()=>{
-            this.setState(prev=>({ slide: (prev.slide + 1) % 5 }));
-          }, 4000);
         }
 
         _spawnParticles(){
@@ -1054,13 +991,10 @@
 
         componentWillUnmount(){
           clearInterval(this._tickT);
-          clearInterval(this._slideT);
           clearInterval(this._particleT);
-          if(this._audio){ this._audio.pause(); this._audio.src=''; }
+          if(this._audio){ this._audio.pause(); }
           if(this._obs) this._obs.disconnect();
-          if(this._galleryObs) this._galleryObs.disconnect();
           if(this._noScroll) document.removeEventListener('touchmove', this._noScroll);
-          if(this._sliderEl && this._sliderTouchMove) this._sliderEl.removeEventListener('touchmove', this._sliderTouchMove);
         }
 
         tick(){
@@ -1080,13 +1014,35 @@
           // Unlock page scroll
           document.body.style.overflow = '';
           if(this._noScroll) document.removeEventListener('touchmove', this._noScroll);
-
-          // ==== ПРОСТОЙ ЗАПУСК МУЗЫКИ ====
+          // Call play() NOW, during the gesture.
+          // iOS holds the gesture permission even while the file is buffering.
+          // If the file isn't ready yet (AbortError), we queue a canplay retry —
+          // the element is already "user-activated" by this call, so the retry succeeds.
           if(this._audio && !this.state.playing){
-            this._audio.play().catch(()=>{}); // игнорируем ошибки – кнопка поможет
-            this.setState({playing:true}); // всё равно показываем иконку "играет"
+            this._audio.play()
+              .then(()=>{ this.setState({playing:true}); })
+              .catch((err)=>{
+                if(err.name !== 'NotAllowedError'){
+                  // Not a permissions error — audio just wasn't ready yet. Retry on canplay.
+                  this._audio.addEventListener('canplay', ()=>{
+                    this._audio.play()
+                      .then(()=>{ this.setState({playing:true}); })
+                      .catch(()=>{});
+                  }, { once: true });
+                } else {
+                  // Some strict mobile in-app browsers reject even a same-tap
+                  // play() call the first time. Retry on the very next touch/
+                  // click anywhere on the page — that's still a direct user
+                  // gesture, so the browser allows it.
+                  const retryOnNextGesture = () => {
+                    if(this.state.playing) return;
+                    this._audio.play().then(()=>{ this.setState({playing:true}); }).catch(()=>{});
+                  };
+                  document.addEventListener('touchend', retryOnNextGesture, { once: true, passive: true });
+                  document.addEventListener('click', retryOnNextGesture, { once: true });
+                }
+              });
           }
-
           setTimeout(()=>{ this.setState({envGone:true}); }, 2800);
         }
 
@@ -1096,61 +1052,36 @@
             this._audio.pause();
             this.setState({playing:false});
           } else {
-            this._audio.play().catch(()=>{});
-            this.setState({playing:true});
+            // play() is called directly in the user-gesture handler.
+            // If audio isn't buffered yet, AbortError is thrown — we retry on canplay.
+            // The element is already "user-activated" by this call, so the retry is allowed.
+            this._audio.play()
+              .then(()=>{ this.setState({playing:true}); })
+              .catch((err)=>{
+                if(err.name !== 'NotAllowedError'){
+                  this._audio.addEventListener('canplay', ()=>{
+                    this._audio.play()
+                      .then(()=>{ this.setState({playing:true}); })
+                      .catch(()=>{});
+                  }, { once: true });
+                }
+              });
           }
         }
 
-        onTouchStart(e){
-          this._touchX = e.touches[0].clientX;
-          if(this._slideT){ clearInterval(this._slideT); this._slideT = null; }
-          this.setState({paused: true});
-        }
-
-        onTouchEnd(e){
-          const track = document.querySelector('.slide-track');
-          const dx = e.changedTouches[0].clientX - (this._touchX || 0);
-          this._touchX = 0;
-          let newSlide = this.state.slide;
-          if(Math.abs(dx) > 60){
-            const dir = dx < 0 ? 1 : -1;
-            newSlide = Math.max(0, Math.min(4, this.state.slide + dir));
-          }
-          if(track){
-            track.classList.remove('dragging');
-            track.style.transform = `translateX(-${newSlide * 100}%)`;
-          }
-          this.setState({slide: newSlide, paused: false, animReset: true});
-          requestAnimationFrame(()=>requestAnimationFrame(()=>{
-            this.setState({animReset: false});
-            this._startSlideshow();
-          }));
-        }
-
-        onSliderDown(){
-          if(this._slideT){ clearInterval(this._slideT); this._slideT = null; }
-          this.setState({paused: true});
-        }
-
-        onSliderUp(){
-          this.setState({paused: false, animReset: true});
-          requestAnimationFrame(()=>requestAnimationFrame(()=>{
-            this.setState({animReset: false});
-            this._startSlideshow();
-          }));
+        // Manual gallery — the browser's native scroll-snap handles the swipe,
+        // we just read the resulting scroll position to update the dashes.
+        onSlide(e){
+          const el = e.target;
+          const i = Math.round(el.scrollLeft / el.clientWidth);
+          if(i !== this.state.slide) this.setState({slide:i});
         }
 
         renderVals(){
           const s = this.state;
-          const dashes = Array.from({length:5}, (_,i)=>{
-            const done   = i < s.slide;
-            const active = i === s.slide;
-            if(done)   return { fillStyle: { width:'100%', animation:'none' } };
-            if(active) return { fillStyle: (s.animReset || !s.galleryActive)
-              ? { width:'0%', animation:'none' }
-              : { animation:'fillBar 4s linear forwards', animationPlayState: s.paused ? 'paused' : 'running' } };
-            return       { fillStyle: { width:'0%',   animation:'none' } };
-          });
+          const dashes = Array.from({length:5}, (_,i)=>({
+            fillStyle: { width: i === s.slide ? '100%' : '0%' }
+          }));
           return {
             showEnvelope: !s.envGone,
             envCls: 'env-screen' + (s.envOpen ? ' gone' : ''),
@@ -1159,7 +1090,6 @@
             fio:s.fio, phone:s.phone, count:s.count, submitted:s.submitted, notSubmitted:!s.submitted,
             cdD:s.d, cdH:s.h, cdM:s.m, cdS:s.s,
             dashes,
-            trackStyle: { transform: `translateX(-${s.slide * 100}%)` },
             daCls:'radio'+(s.nochleg==='да'?' on':''),
             netCls:'radio'+(s.nochleg==='нет'?' on':''),
             musicBtnCls: 'musicbtn' + (s.playing ? ' playing' : ''),
@@ -1172,10 +1102,7 @@
             pickNet:()=>this.setState({nochleg:'нет'}),
             submit:()=>this.setState({submitted:true}),
             toggleMusic:this.toggleMusic.bind(this),
-            onTouchStart:this.onTouchStart.bind(this),
-            onTouchEnd:this.onTouchEnd.bind(this),
-            onSliderDown:this.onSliderDown.bind(this),
-            onSliderUp:this.onSliderUp.bind(this),
+            onSlide:this.onSlide.bind(this),
           };
         }
       }
