@@ -744,7 +744,6 @@
           <div class="env-hint">Нажмите на конверт, чтобы открыть</div>
         </div></sc-if
       >
-      <audio id="bg-music" loop preload="auto" playsinline webkit-playsinline src="./assets/music.mp3"></audio>
       <div class="page">
         <section class="sec fadeup" style="padding-top: 32px; padding-bottom: 0">
           <div class="pframe"><img src="assets/main-photo.jpg" alt="Александр и Мария" /></div>
@@ -779,7 +778,7 @@
           <div class="swrow">
             <span class="swatch" style="background: #5b4234"></span
             ><span class="swatch" style="background: #7b8d6a"></span
-            ><span class="swatch" style="background: #d4b3ba"></span
+            ><span class="swatch" style="background: #d0acac"></span
             ><span class="swatch" style="background: #dcd2c1"></span
             ><span class="swatch" style="background: #faf6e8; border: 1px solid #ddd6cb"></span>
           </div>
@@ -938,19 +937,11 @@
           this.tick();
           this._tickT = setInterval(()=>this.tick(), 1000);
 
-          // music — a real <audio> element living in the DOM (not a detached
-          // new Audio() object). Several mobile in-app browsers (Telegram,
-          // VK, Instagram webview) silently refuse to play a detached Audio
-          // instance even after a user gesture, while an element that's
-          // actually part of the page plays reliably. preload='auto' starts
-          // buffering immediately so the file is more likely to be ready by
-          // the time the user taps the envelope.
-          this._audio = document.getElementById('bg-music');
-          if(this._audio){
-            this._audio.volume = 0.8;
-            this._audio.loop = true;
-            this._audio.preload = 'auto';
-          }
+          // music — new Audio() object, same approach as the working first version.
+          this._audio = new Audio('./assets/music.mp3');
+          this._audio.loop = true;
+          this._audio.volume = 0.8;
+          this._audio.addEventListener('ended', ()=>this.setState({playing:false}));
 
           // Scroll lock while envelope is showing
           this._noScroll = (e) => e.preventDefault();
@@ -992,7 +983,7 @@
         componentWillUnmount(){
           clearInterval(this._tickT);
           clearInterval(this._particleT);
-          if(this._audio){ this._audio.pause(); }
+          if(this._audio){ this._audio.pause(); this._audio.src=''; }
           if(this._obs) this._obs.disconnect();
           if(this._noScroll) document.removeEventListener('touchmove', this._noScroll);
         }
