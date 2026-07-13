@@ -1005,6 +1005,11 @@
           // Unlock page scroll
           document.body.style.overflow = '';
           if(this._noScroll) document.removeEventListener('touchmove', this._noScroll);
+          // Call play() directly in the click handler, same as the reference project.
+          if(this._audio && !this.state.playing){
+            this._audio.play().catch(()=>{});
+            this.setState({playing:true});
+          }
           setTimeout(()=>{ this.setState({envGone:true}); }, 2800);
         }
 
