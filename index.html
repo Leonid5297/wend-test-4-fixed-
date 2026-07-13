@@ -365,7 +365,7 @@
           }
           .tlitem {
             position: relative;
-            padding-left: 52px;
+            padding-left: 64px;
             padding-bottom: 60px;
           }
           .tlitem:last-child {
@@ -374,8 +374,8 @@
           .tlitem::before {
             content: "";
             position: absolute;
-            left: 13px;
-            top: 28px;
+            left: 20px;
+            top: 44px;
             bottom: 0;
             width: 1px;
             background: var(--line);
@@ -383,15 +383,22 @@
           .tlitem:last-child::before {
             display: none;
           }
-          .tldot {
+          .tlicon {
             position: absolute;
             left: 0;
             top: 0;
-            width: 27px;
-            height: 27px;
-            border: 1.5px solid var(--ink);
-            border-radius: 50%;
-            background: var(--bg);
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: none;
+          }
+          .tlicon svg {
+            width: 40px;
+            height: 40px;
+            color: var(--ink);
+            display: block;
           }
           .tltime {
             font-family: "Playfair Display", serif;
@@ -812,17 +819,51 @@
           <div class="h1">Программа</div>
           <div class="tl">
             <div class="tlitem">
-              <span class="tldot"></span>
+              <span class="tlicon"
+                ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" y1="2.2" x2="12" y2="4.8" />
+                  <line x1="10.6" y1="3.5" x2="13.4" y2="3.5" />
+                  <path d="M4 21V11.2L12 6l8 5.2V21" />
+                  <line x1="2.6" y1="21" x2="21.4" y2="21" />
+                  <path d="M9.7 21v-4.4a2.3 2.3 0 0 1 4.6 0V21" />
+                  <path
+                    d="M12 8.6c.85-1.05 2.7-.4 2.7.85 0 1.25-1.45 2.2-2.7 3.15-1.25-.95-2.7-1.9-2.7-3.15 0-1.25 1.85-1.9 2.7-.85z"
+                  /></svg
+              ></span>
               <div class="tltime">11:00</div>
               <div class="tllab">Венчание</div>
             </div>
             <div class="tlitem">
-              <span class="tldot"></span>
+              <span class="tlicon"
+                ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round">
+                  <path
+                    d="M12 2.8c-.9.85-1.3 1.5-1.3 2.05a1.3 1.3 0 0 0 2.6 0c0-.55-.4-1.2-1.3-2.05z"
+                  />
+                  <line x1="12" y1="5.7" x2="12" y2="8.6" />
+                  <path d="M7 8.6h10v3.4h2v7.4H5v-7.4h2z" />
+                  <path
+                    d="M7 12c.85-.85 1.75-.85 2.5 0s1.75.85 2.5 0 1.75-.85 2.5 0 1.75.85 2.5 0"
+                  /></svg
+              ></span>
               <div class="tltime">13:00</div>
               <div class="tllab">Праздничный обед</div>
             </div>
             <div class="tlitem">
-              <span class="tldot"></span>
+              <span class="tlicon"
+                ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9.5" y="2.4" width="11.5" height="7.4" rx="2.7" style="fill: var(--bg)" />
+                  <path d="M13 9.8 12.7 12.4 16.2 9.8" style="fill: var(--bg)" />
+                  <path
+                    transform="translate(15.2,6.1) scale(0.72) translate(-2,-1.35)"
+                    d="M0 0.9c0-1.3 1.55-1.85 2-.8.45-1.05 2-.5 2 .8 0 1.2-1.65 2.3-2 2.55-.35-.25-2-1.35-2-2.55z"
+                  />
+                  <rect x="2.2" y="8.6" width="14.6" height="9.6" rx="3.2" style="fill: var(--bg)" />
+                  <path d="M6.6 18.2 6.2 21.8 10.6 18.2" style="fill: var(--bg)" />
+                  <path
+                    transform="translate(9.5,13.4) scale(1.0) translate(-2,-1.35)"
+                    d="M0 0.9c0-1.3 1.55-1.85 2-.8.45-1.05 2-.5 2 .8 0 1.2-1.65 2.3-2 2.55-.35-.25-2-1.35-2-2.55z"
+                  /></svg
+              ></span>
               <div class="tltime">15:00</div>
               <div class="tllab">Поздравительная часть</div>
             </div>
@@ -856,7 +897,7 @@
               </div>
             </div>
             <div class="field">
-              <div class="flab">Ваш телефон</div>
+              <div class="flab">Ваш телефон (необязательно)</div>
               <input
                 class="{{ phoneInpCls }}"
                 placeholder="+7 (999) 999-9999"
@@ -967,7 +1008,7 @@
 
         // Вставь сюда URL веб-приложения Google Apps Script (см. инструкцию), например:
         // 'https://script.google.com/macros/s/AKfycb.../exec'
-        GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwADdCR0zMgt2ZRcsr_ktQO-PdMEGTGvsyMIVhaQWn1RCRwB2-BUv6J7oXwRqwCQYWZ/exec';
+        GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwz5QU5YrTXX6Mcghs3wOVviKt4K36xNdfH3xjFO351_LGE8SHwRx0To8P7c4c9LI3F/exec';
 
         componentDidMount(){
           this.tick();
